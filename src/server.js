@@ -2,26 +2,54 @@ import app from './app.js';
 import { config } from './config/config.js';
 import { connectDB } from './config/database.js';
 
-const PORT = config.port;
+const PORT = config.port || 3000;
 
-// Connect to MongoDB then start server
-const startServer = async () => {
-  try {
-    // Connect to database
+// Connect to MongoDB
+let isConnected = false;
+
+const ensureDbConnection = async () => {
+  if (!isConnected) {
     await connectDB();
-    
-    // Start Express server
-    app.listen(PORT, () => {
-      console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📝 Environment: ${config.nodeEnv}`);
-      console.log(`🔐 Access Token Expiry: ${config.jwt.accessTokenExpiry}`);
-      console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-      console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    isConnected = true;
   }
 };
 
-startServer();
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    success: true,
+    message: 'Task Management API is running',
+    environment: config.nodeEnv,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// For Vercel Serverless - connect DB on each request
+app.use(async (req, res, next) => {
+  await ensureDbConnection();
+  next();
+});
+
+// Export for Vercel
+export default app;
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const startServer = async () => {
+    try {
+      await connectDB();
+      app.listen(PORT, () => {
+        console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📝 Environment: ${config.nodeEnv}`);
+        console.log(`🔐 Access Token Expiry: ${config.jwt.accessTokenExpiry}`);
+        console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+        console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`);
+      });
+    } catch (error) {
+      console.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  };
+  
+  startServer();
+}
