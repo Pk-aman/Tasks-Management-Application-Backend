@@ -15,12 +15,13 @@ const ensureDbConnection = async () => {
 };
 
 // Health check endpoint
-app.get('/', (req, res) => {
+app.get('/health-check', (req, res) => {
   res.json({ 
     success: true,
     message: 'Task Management API is running',
     environment: config.nodeEnv,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    Database: isConnected ? 'Connected' : 'Disconnected'
   });
 });
 
@@ -42,8 +43,6 @@ if (process.env.NODE_ENV !== 'production') {
         console.log(`\n🚀 Server running on http://localhost:${PORT}`);
         console.log(`📝 Environment: ${config.nodeEnv}`);
         console.log(`🔐 Access Token Expiry: ${config.jwt.accessTokenExpiry}`);
-        console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-        console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`);
       });
     } catch (error) {
       console.error('Failed to start server:', error);
